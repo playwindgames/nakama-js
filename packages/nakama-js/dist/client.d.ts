@@ -22,7 +22,7 @@ export interface RpcResponse {
     /** The identifier of the function. */
     id?: string;
     /** The payload of the function which must be a JSON object. */
-    payload?: object;
+    payload?: object | string;
 }
 /** Represents a complete leaderboard record with all scores and associated metadata. */
 export interface LeaderboardRecord {
@@ -529,9 +529,9 @@ export declare class Client {
     /** Fetch storage objects. */
     readStorageObjects(session: Session, request: ApiReadStorageObjectsRequest): Promise<StorageObjects>;
     /** Execute an RPC function on the server. */
-    rpc(session: Session, id: string, input: object): Promise<RpcResponse>;
+    rpc(session: Session, id: string, input: object | string, rawInput?: boolean, rawOutput?: boolean): Promise<RpcResponse>;
     /** Execute an RPC function on the server. */
-    rpcHttpKey(httpKey: string, id: string, input?: object): Promise<RpcResponse>;
+    rpcHttpKey(httpKey: string, id: string, input?: object | string, rawInput?: boolean, rawOutput?: boolean): Promise<RpcResponse>;
     /** Log out a session, invalidate a refresh token, or log out all sessions/refresh tokens for a user. */
     sessionLogout(session: Session, token: string, refreshToken: string): Promise<boolean>;
     /** Refresh a user's session using a refresh token retrieved from a previous authentication request. */

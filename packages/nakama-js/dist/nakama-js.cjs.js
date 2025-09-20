@@ -52,14 +52,14 @@ var __async = (__this, __arguments, generator) => {
 };
 
 // index.ts
-var nakama_js_exports = {};
-__export(nakama_js_exports, {
+var index_exports = {};
+__export(index_exports, {
   Client: () => Client,
   DefaultSocket: () => DefaultSocket,
   Session: () => Session,
   WebSocketAdapterText: () => WebSocketAdapterText
 });
-module.exports = __toCommonJS(nakama_js_exports);
+module.exports = __toCommonJS(index_exports);
 
 // ../../node_modules/whatwg-fetch/fetch.js
 var g = typeof globalThis !== "undefined" && globalThis || typeof self !== "undefined" && self || // eslint-disable-next-line no-undef
@@ -653,12 +653,19 @@ var atobPolyfill = (asc) => {
   if (!b64re.test(asc))
     throw new TypeError("malformed base64.");
   asc += "==".slice(2 - (asc.length & 3));
-  let u24, bin = "", r1, r2;
+  let u24, r1, r2;
+  let binArray = [];
   for (let i = 0; i < asc.length; ) {
     u24 = b64tab[asc.charAt(i++)] << 18 | b64tab[asc.charAt(i++)] << 12 | (r1 = b64tab[asc.charAt(i++)]) << 6 | (r2 = b64tab[asc.charAt(i++)]);
-    bin += r1 === 64 ? _fromCC(u24 >> 16 & 255) : r2 === 64 ? _fromCC(u24 >> 16 & 255, u24 >> 8 & 255) : _fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255);
+    if (r1 === 64) {
+      binArray.push(_fromCC(u24 >> 16 & 255));
+    } else if (r2 === 64) {
+      binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
+    } else {
+      binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
+    }
   }
-  return bin;
+  return binArray.join("");
 };
 var _atob = typeof atob === "function" ? (asc) => atob(_tidyB64(asc)) : _hasBuffer ? (asc) => Buffer.from(asc, "base64").toString("binary") : atobPolyfill;
 var _toUint8Array = _hasBuffer ? (a) => _U8Afrom(Buffer.from(a, "base64")) : (a) => _U8Afrom(_atob(a).split("").map((c) => c.charCodeAt(0)));
@@ -4987,26 +4994,28 @@ var Client = class {
     });
   }
   /** Execute an RPC function on the server. */
-  rpc(session, id, input) {
+  rpc(session, id, input, rawInput = false, rawOutput = false) {
     return __async(this, null, function* () {
       if (this.autoRefreshSession && session.refresh_token && session.isexpired((Date.now() + this.expiredTimespanMs) / 1e3)) {
         yield this.sessionRefresh(session);
       }
-      return this.apiClient.rpcFunc(session.token, id, JSON.stringify(input)).then((response) => {
+      const inputStr = rawInput ? input : JSON.stringify(input);
+      return this.apiClient.rpcFunc(session.token, id, inputStr).then((response) => {
         return Promise.resolve({
           id: response.id,
-          payload: !response.payload ? void 0 : JSON.parse(response.payload)
+          payload: !response.payload ? void 0 : rawOutput ? response.payload : JSON.parse(response.payload)
         });
       });
     });
   }
   /** Execute an RPC function on the server. */
-  rpcHttpKey(httpKey, id, input) {
+  rpcHttpKey(httpKey, id, input, rawInput = false, rawOutput = false) {
     return __async(this, null, function* () {
-      return this.apiClient.rpcFunc2("", id, input && JSON.stringify(input) || "", httpKey).then((response) => {
+      const inputStr = input && (rawInput ? input : JSON.stringify(input));
+      return this.apiClient.rpcFunc2("", id, inputStr || "", httpKey).then((response) => {
         return Promise.resolve({
           id: response.id,
-          payload: !response.payload ? void 0 : JSON.parse(response.payload)
+          payload: !response.payload ? void 0 : rawOutput ? response.payload : JSON.parse(response.payload)
         });
       }).catch((err) => {
         throw err;

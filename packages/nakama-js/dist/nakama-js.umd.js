@@ -896,17 +896,24 @@
       if (!b64re.test(asc))
           throw new TypeError('malformed base64.');
       asc += '=='.slice(2 - (asc.length & 3));
-      let u24, bin = '', r1, r2;
+      let u24, r1, r2;
+      let binArray = []; // use array to avoid minor gc in loop
       for (let i = 0; i < asc.length;) {
           u24 = b64tab[asc.charAt(i++)] << 18
               | b64tab[asc.charAt(i++)] << 12
               | (r1 = b64tab[asc.charAt(i++)]) << 6
               | (r2 = b64tab[asc.charAt(i++)]);
-          bin += r1 === 64 ? _fromCC(u24 >> 16 & 255)
-              : r2 === 64 ? _fromCC(u24 >> 16 & 255, u24 >> 8 & 255)
-                  : _fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255);
+          if (r1 === 64) {
+              binArray.push(_fromCC(u24 >> 16 & 255));
+          }
+          else if (r2 === 64) {
+              binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255));
+          }
+          else {
+              binArray.push(_fromCC(u24 >> 16 & 255, u24 >> 8 & 255, u24 & 255));
+          }
       }
-      return bin;
+      return binArray.join('');
   };
   /**
    * does what `window.atob` of web browsers do.
@@ -6318,8 +6325,11 @@
           });
       };
       /** Execute an RPC function on the server. */
-      Client.prototype.rpc = function (session, id, input) {
-          return __awaiter(this, void 0, void 0, function () {
+      Client.prototype.rpc = function (session_1, id_1, input_1) {
+          return __awaiter(this, arguments, void 0, function (session, id, input, rawInput, rawOutput) {
+              var inputStr;
+              if (rawInput === void 0) { rawInput = false; }
+              if (rawOutput === void 0) { rawOutput = false; }
               return __generator(this, function (_a) {
                   switch (_a.label) {
                       case 0:
@@ -6329,25 +6339,31 @@
                       case 1:
                           _a.sent();
                           _a.label = 2;
-                      case 2: return [2 /*return*/, this.apiClient.rpcFunc(session.token, id, JSON.stringify(input)).then(function (response) {
-                              return Promise.resolve({
-                                  id: response.id,
-                                  payload: (!response.payload) ? undefined : JSON.parse(response.payload)
-                              });
-                          })];
+                      case 2:
+                          inputStr = rawInput ? input : JSON.stringify(input);
+                          return [2 /*return*/, this.apiClient.rpcFunc(session.token, id, inputStr).then(function (response) {
+                                  return Promise.resolve({
+                                      id: response.id,
+                                      payload: (!response.payload) ? undefined : (rawOutput ? response.payload : JSON.parse(response.payload))
+                                  });
+                              })];
                   }
               });
           });
       };
       /** Execute an RPC function on the server. */
-      Client.prototype.rpcHttpKey = function (httpKey, id, input) {
-          return __awaiter(this, void 0, void 0, function () {
+      Client.prototype.rpcHttpKey = function (httpKey_1, id_1, input_1) {
+          return __awaiter(this, arguments, void 0, function (httpKey, id, input, rawInput, rawOutput) {
+              var inputStr;
+              if (rawInput === void 0) { rawInput = false; }
+              if (rawOutput === void 0) { rawOutput = false; }
               return __generator(this, function (_a) {
-                  return [2 /*return*/, this.apiClient.rpcFunc2("", id, input && JSON.stringify(input) || "", httpKey)
+                  inputStr = input && (rawInput ? input : JSON.stringify(input));
+                  return [2 /*return*/, this.apiClient.rpcFunc2("", id, inputStr || "", httpKey)
                           .then(function (response) {
                           return Promise.resolve({
                               id: response.id,
-                              payload: (!response.payload) ? undefined : JSON.parse(response.payload)
+                              payload: (!response.payload) ? undefined : (rawOutput ? response.payload : JSON.parse(response.payload))
                           });
                       }).catch(function (err) {
                           throw err;
